@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Lista de Exercícios de WebGL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg1: #0f2027;
+        /* deep */
+        --bg2: #203a43;
+        /* teal */
+        --accent: #ffb86b;
+        /* warm */
+        --card: #0f1720;
+        --glass: rgba(255, 255, 255, 0.04);
+        --muted: #b8c2c9;
+      }
+
+      * {
+        box-sizing: border-box
+      }
+
+      html,
+      body {
+        height: 100%
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        background: radial-gradient(1200px 600px at 10% 10%, rgba(255, 184, 107, 0.06), transparent),
+          linear-gradient(135deg, var(--bg1), var(--bg2));
+        color: #e6eef3;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 980px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+        border-radius: 18px;
+        padding: 28px;
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(6px);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .logo {
+        width: 68px;
+        height: 68px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), #ffd28a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #102027;
+        font-size: 28px;
+        flex: 0 0 68px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      }
+
+      h1 {
+        font-size: 20px;
+        margin: 0 0 2px 0
+      }
+
+      p.lead {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+      }
+
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 18px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        text-decoration: none;
+        color: inherit;
+        transition: transform .18s ease, box-shadow .18s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(2, 6, 23, 0.55)
+      }
+
+      .card:focus {
+        outline: 2px solid rgba(255, 184, 107, 0.25)
+      }
+
+      .card .ico {
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.06));
+        box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      .card h3 {
+        margin: 0;
+        font-size: 16px
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35
+      }
+
+      .meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px
+      }
+
+      .foot {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: right
+      }
+
+      @media (max-width:520px) {
+        .logo {
+          width: 54px;
+          height: 54px;
+          font-size: 22px
+        }
+
+        header {
+          gap: 12px
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" role="main">
+      <header>
+        <div class="logo">WG</div>
+        <div>
+          <h1>Lista de Exercícios de WebGL</h1>
+          <p class="lead">Três exercícios simples — clique para abrir cada pasta.</p>
+        </div>
+      </header>
+      <section class="grid" aria-label="exercicios">
+        <a class="card" href="./quadrados-felizes/">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h3>Quadrados Felizes</h3>
+              <p>3x3 quadrados coloridos — evite repetir código e use atributos.</p>
+            </div>
+            <div class="ico">▦</div>
+          </div>
+          <div class="meta">Projeto: WebGL primitivo • Recomendado: refletir sobre VAO/VBO</div>
+        </a>
+        <a class="card" href="./disco-quadrado/">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h3>Disco Quadrado</h3>
+              <p>Triangule um anel quadrado; pressione <strong>c</strong> para ver contornos. </p>
+            </div>
+            <div class="ico">◧</div>
+          </div>
+          <div class="meta">Desafio: triangulação • Dica: desenhe preenchido+contorno</div>
+        </a>
+        <a class="card" href="./poligono-regular/">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h3>Polígono Regular</h3>
+              <p>Desenhe um polígono regular controlado por <em>NUM_LADOS</em> (use sin/cos). </p>
+            </div>
+            <div class="ico">⬢</div>
+          </div>
+          <div class="meta">Matemática: ângulos/raio • Pode ser interativo</div>
+        </a>
+      </section>
+      <div class="foot">Coloque este arquivo na raiz do site para navegar pelos exercícios.</div>
+    </main>
+  </body>
+</html>
