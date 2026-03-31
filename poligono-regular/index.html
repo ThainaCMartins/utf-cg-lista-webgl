@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exercício 3 - Polígono Regular</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #111;
+    }
+
+    canvas {
+      background: white;
+      border: 1px solid #444;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="700" height="700"></canvas>
+
+  <script>
+    // =========================================================
+    // 1) CANVAS E CONTEXTO WEBGL
+    // =========================================================
+    const canvas = document.getElementById("canvas");
+    const gl = canvas.getContext("webgl");
+
+    if (!gl) {
+      alert("WebGL não suportado.");
+      throw new Error("WebGL não suportado.");
+    }
+
+    // =========================================================
+    // 2) CONSTANTES / VARIÁVEIS
+    // =========================================================
+    // O professor fala em uma constante NUM_LADOS.
+    // Aqui eu usei let porque a nota do exercício comenta que
+    // dá para aumentar e diminuir com + e -.
+    let numLados = 6;
+
+    // Centro do polígono no espaço WebGL
+    const centroX = 0.0;
+    const centroY = 0.0;
+
+    // Raio do polígono
+    const raio = 0.65;
+
+    // =========================================================
+    // 3) SHADERS
+    // =========================================================
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+
+    const fragmentShaderSource = `
+      precision mediump float;
+      uniform vec3 u_color;
+
+      void main() {
+        gl_FragColor = vec4(u_color, 1.0);
+      }
+    `;
+
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error("Erro ao compilar shader:", gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Erro ao linkar programa:", gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+
+      return program;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    gl.useProgram(program);
+
+    // =========================================================
+    // 4) ATRIBUTOS E UNIFORMS
+    // =========================================================
+    const aPosition = gl.getAttribLocation(program, "a_position");
+    const uColor = gl.getUniformLocation(program, "u_color");
+
+    // =========================================================
+    // 5) BUFFER
+    // =========================================================
+    const positionBuffer = gl.createBuffer();
+
+    // =========================================================
+    // 6) FUNÇÃO PARA GERAR OS VÉRTICES DO POLÍGONO
+    // =========================================================
+    // Como o polígono será desenhado com TRIANGLE_FAN,
+    // o primeiro ponto será o centro.
+    //
+    // Depois, calculamos os vértices da borda usando:
+    // x = centroX + raio * cos(t)
+    // y = centroY + raio * sin(t)
+    //
+    // O ângulo t varia de 0 até 2π.
+    //
+    // Repetimos o primeiro vértice da borda no final para
+    // "fechar" corretamente o desenho.
+    function gerarVerticesPoligono(numLados, centroX, centroY, raio) {
+      const vertices = [];
+
+      // ponto central
+      vertices.push(centroX, centroY);
+
+      // pontos da borda
+      for (let i = 0; i <= numLados; i++) {
+        const t = (i * 2 * Math.PI) / numLados;
+        const x = centroX + raio * Math.cos(t);
+        const y = centroY + raio * Math.sin(t);
+
+        vertices.push(x, y);
+      }
+
+      return new Float32Array(vertices);
+    }
+
+    // =========================================================
+    // 7) FUNÇÃO DE DESENHO
+    // =========================================================
+    function drawScene() {
+      const vertices = gerarVerticesPoligono(numLados, centroX, centroY, raio);
+
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(1.0, 1.0, 1.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+      // cor do polígono
+      gl.uniform3fv(uColor, [0.20, 0.65, 0.85]);
+
+      // TRIANGLE_FAN:
+      // 1 vértice central + (numLados + 1) vértices da borda
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, numLados + 2);
+    }
+
+    // desenha uma vez no início
+    drawScene();
+
+    // =========================================================
+    // 8) TECLADO
+    // =========================================================
+    // + aumenta o número de lados
+    // - diminui o número de lados
+    // mínimo = 3, porque abaixo disso não forma polígono
+    window.addEventListener("keydown", function(event) {
+      if (event.key === "+" || event.key === "=") {
+        numLados++;
+        drawScene();
+      }
+
+      if ((event.key === "-" || event.key === "_") && numLados > 3) {
+        numLados--;
+        drawScene();
+      }
+    });
+  </script>
+</body>
+</html>
