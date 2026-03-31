@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exercício 1 - 9 Quadrados</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    canvas {
+      border: 1px solid #444;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="700" height="700"></canvas>
+
+  <script>
+    // =========================================================
+    // 1) PEGANDO O CANVAS E O CONTEXTO WEBGL
+    // =========================================================
+    const canvas = document.getElementById("canvas");
+    const gl = canvas.getContext("webgl");
+
+    // Se o navegador não suportar WebGL, o programa avisa.
+    if (!gl) {
+      alert("WebGL não suportado no navegador.");
+      throw new Error("WebGL não suportado.");
+    }
+
+    // =========================================================
+    // 2) SHADERS
+    // =========================================================
+    // Vertex Shader:
+    // recebe a posição do vértice e também um deslocamento.
+    // O deslocamento serve para mover o quadrado base
+    // para várias posições diferentes na tela.
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+      uniform vec2 u_offset;
+
+      void main() {
+        vec2 finalPosition = a_position + u_offset;
+        gl_Position = vec4(finalPosition, 0.0, 1.0);
+      }
+    `;
+
+    // Fragment Shader:
+    // recebe uma cor por uniforme e pinta o quadrado com ela.
+    const fragmentShaderSource = `
+      precision mediump float;
+      uniform vec3 u_color;
+
+      void main() {
+        gl_FragColor = vec4(u_color, 1.0);
+      }
+    `;
+
+    // =========================================================
+    // 3) FUNÇÕES AUXILIARES PARA CRIAR SHADERS E PROGRAMA
+    // =========================================================
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+
+      // Verifica se compilou corretamente
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error("Erro ao compilar shader:", gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      // Verifica se linkou corretamente
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Erro ao linkar programa:", gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+
+      return program;
+    }
+
+    // Cria os shaders e o programa principal
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    gl.useProgram(program);
+
+    // =========================================================
+    // 4) GEOMETRIA DO QUADRADO BASE
+    // =========================================================
+    // Em vez de criar 9 quadrados diferentes, eu criei
+    // apenas 1 quadrado base.
+    //
+    // Esse quadrado é formado por 2 triângulos,
+    // totalizando 6 vértices.
+    const squareVertices = new Float32Array([
+      -0.18, -0.18,
+       0.18, -0.18,
+      -0.18,  0.18,
+
+      -0.18,  0.18,
+       0.18, -0.18,
+       0.18,  0.18
+    ]);
+
+    // Cria o buffer e envia os vértices para a GPU
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, squareVertices, gl.STATIC_DRAW);
+
+    // =========================================================
+    // 5) ATRIBUTOS E UNIFORMS
+    // =========================================================
+    // a_position -> posição de cada vértice do quadrado base
+    const aPosition = gl.getAttribLocation(program, "a_position");
+
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    // u_offset -> deslocamento do quadrado na tela
+    // u_color  -> cor de cada quadrado
+    const uOffset = gl.getUniformLocation(program, "u_offset");
+    const uColor = gl.getUniformLocation(program, "u_color");
+
+    // =========================================================
+    // 6) DADOS DOS 9 QUADRADOS
+    // =========================================================
+    // Cada quadrado é representado por um objeto com:
+    // - offset: posição onde ele vai aparecer
+    // - color: cor RGB
+    //
+    // Assim evitamos repetição de código.
+    const quadrados = [
+      { offset: [-0.60,  0.60], color: [1.0, 0.0, 0.0] }, // vermelho
+      { offset: [ 0.00,  0.60], color: [0.0, 1.0, 0.0] }, // verde
+      { offset: [ 0.60,  0.60], color: [0.0, 0.0, 1.0] }, // azul
+
+      { offset: [-0.60,  0.00], color: [1.0, 1.0, 0.0] }, // amarelo
+      { offset: [ 0.00,  0.00], color: [1.0, 0.0, 1.0] }, // magenta
+      { offset: [ 0.60,  0.00], color: [0.0, 1.0, 1.0] }, // ciano
+
+      { offset: [-0.60, -0.60], color: [1.0, 0.5, 0.0] }, // laranja
+      { offset: [ 0.00, -0.60], color: [0.5, 0.0, 1.0] }, // roxo
+      { offset: [ 0.60, -0.60], color: [1.0, 1.0, 1.0] }  // branco
+    ];
+
+    // =========================================================
+    // 7) FUNÇÃO DE DESENHO
+    // =========================================================
+    function drawScene() {
+      // Ajusta a viewport para o tamanho do canvas
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      // Limpa a tela com preto
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      // Desenha os 9 quadrados percorrendo a lista
+      for (const quadrado of quadrados) {
+        // Define a posição do quadrado atual
+        gl.uniform2fv(uOffset, quadrado.offset);
+
+        // Define a cor do quadrado atual
+        gl.uniform3fv(uColor, quadrado.color);
+
+        // Desenha o quadrado base
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+    }
+
+    // Desenha a cena inicial
+    drawScene();
+  </script>
+</body>
+</html>
