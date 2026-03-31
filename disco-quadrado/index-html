@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exercício 2 - Disco Quadrado</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #111;
+    }
+
+    canvas {
+      background: white;
+      border: 1px solid #444;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="700" height="700"></canvas>
+
+  <script>
+    // =========================================================
+    // 1) PEGANDO O CANVAS E O CONTEXTO WEBGL
+    // =========================================================
+    const canvas = document.getElementById("canvas");
+    const gl = canvas.getContext("webgl");
+
+    // Se o navegador não suportar WebGL, o programa avisa.
+    if (!gl) {
+      alert("WebGL não suportado neste navegador.");
+      throw new Error("WebGL não suportado.");
+    }
+
+    // =========================================================
+    // 2) CÓDIGO DOS SHADERS
+    // =========================================================
+    // Vertex Shader:
+    // recebe a posição de cada vértice e manda essa posição
+    // para a tela em coordenadas do WebGL.
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+
+    // Fragment Shader:
+    // define a cor com que o objeto será pintado.
+    // A cor será passada por uniforme.
+    const fragmentShaderSource = `
+      precision mediump float;
+      uniform vec3 u_color;
+
+      void main() {
+        gl_FragColor = vec4(u_color, 1.0);
+      }
+    `;
+
+    // =========================================================
+    // 3) FUNÇÕES AUXILIARES PARA CRIAR SHADER E PROGRAMA
+    // =========================================================
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+
+      // Verifica se compilou corretamente
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error("Erro ao compilar shader:", gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      // Verifica se linkou corretamente
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Erro ao linkar programa:", gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+
+      return program;
+    }
+
+    // Criação dos shaders e do programa principal
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    gl.useProgram(program);
+
+    // =========================================================
+    // 4) LOCALIZAÇÃO DOS ATRIBUTOS E UNIFORMS
+    // =========================================================
+    // a_position -> posição de cada vértice
+    // u_color    -> cor usada para desenhar o objeto
+    const aPosition = gl.getAttribLocation(program, "a_position");
+    const uColor = gl.getUniformLocation(program, "u_color");
+
+    // =========================================================
+    // 5) GEOMETRIA DO PREENCHIMENTO
+    // =========================================================
+    // Aqui eu escolhi usar TRIANGLE_STRIP.
+    //
+    // A ideia é alternar:
+    // vértice do quadrado externo
+    // vértice do quadrado interno
+    //
+    // Isso forma a "faixa" entre os dois quadrados, ou seja,
+    // o disco quadrado preenchido.
+    //
+    // Ordem dos pontos:
+    // externo sup. esq. -> interno sup. esq.
+    // externo sup. dir. -> interno sup. dir.
+    // externo inf. dir. -> interno inf. dir.
+    // externo inf. esq. -> interno inf. esq.
+    // e repete o início para fechar a forma
+    const fillVertices = new Float32Array([
+      -0.8,  0.8,   -0.4,  0.4,
+       0.8,  0.8,    0.4,  0.4,
+       0.8, -0.8,    0.4, -0.4,
+      -0.8, -0.8,   -0.4, -0.4,
+      -0.8,  0.8,   -0.4,  0.4
+    ]);
+
+    const fillBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, fillBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, fillVertices, gl.STATIC_DRAW);
+
+    // =========================================================
+    // 6) GEOMETRIA DOS CONTORNOS
+    // =========================================================
+    // Para mostrar os traços pretos quando apertar C,
+    // eu desenho o mesmo objeto uma segunda vez,
+    // mas agora usando linhas.
+    //
+    // Aqui estão:
+    // - as 4 arestas do quadrado externo
+    // - as 4 arestas do quadrado interno
+    // - as 4 linhas ligando os cantos correspondentes
+    const lineVertices = new Float32Array([
+      // quadrado externo
+      -0.8,  0.8,   0.8,  0.8,
+       0.8,  0.8,   0.8, -0.8,
+       0.8, -0.8,  -0.8, -0.8,
+      -0.8, -0.8,  -0.8,  0.8,
+
+      // quadrado interno
+      -0.4,  0.4,   0.4,  0.4,
+       0.4,  0.4,   0.4, -0.4,
+       0.4, -0.4,  -0.4, -0.4,
+      -0.4, -0.4,  -0.4,  0.4,
+
+      // linhas ligando os cantos
+      -0.8,  0.8,  -0.4,  0.4,
+       0.8,  0.8,   0.4,  0.4,
+       0.8, -0.8,   0.4, -0.4,
+      -0.8, -0.8,  -0.4, -0.4
+    ]);
+
+    const lineBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.STATIC_DRAW);
+
+    // =========================================================
+    // 7) VARIÁVEL DE CONTROLE
+    // =========================================================
+    // No começo, os contornos não devem aparecer.
+    let showLines = false;
+
+    // =========================================================
+    // 8) FUNÇÃO DE DESENHO
+    // =========================================================
+    function drawScene() {
+      // Ajusta a área de desenho para o tamanho do canvas
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      // Limpa a tela com branco
+      gl.clearColor(1.0, 1.0, 1.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      // ---------------------------------------------------------
+      // PRIMEIRO DESENHO: preenchimento azul
+      // ---------------------------------------------------------
+      gl.bindBuffer(gl.ARRAY_BUFFER, fillBuffer);
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+      // Cor azul clara
+      gl.uniform3fv(uColor, [0.65, 0.87, 0.87]);
+
+      // Desenha usando TRIANGLE_STRIP
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 10);
+
+      // ---------------------------------------------------------
+      // SEGUNDO DESENHO: contornos pretos
+      // ---------------------------------------------------------
+      // Só aparece quando a tecla C for pressionada
+      if (showLines) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+        // Cor preta
+        gl.uniform3fv(uColor, [0.0, 0.0, 0.0]);
+
+        // Desenha as linhas
+        gl.drawArrays(gl.LINES, 0, 24);
+      }
+    }
+
+    // Desenha a cena inicial
+    drawScene();
+
+    // =========================================================
+    // 9) INTERAÇÃO COM O TECLADO
+    // =========================================================
+    // Quando o usuário apertar C, os contornos aparecem ou somem.
+    window.addEventListener("keydown", function(event) {
+      if (event.key === "c" || event.key === "C") {
+        showLines = !showLines;
+        drawScene();
+      }
+    });
+  </script>
+</body>
+</html>
